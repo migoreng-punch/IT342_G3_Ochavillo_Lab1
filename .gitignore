@@ -1,0 +1,21 @@
+# ===============================
+# Spring Boot / Java
+# ===============================
+miniapp/target/
+miniapp/.mvn/
+miniapp/*.log
+
+# ===============================
+# React / Node
+# ===============================
+web/node_modules/
+web/dist/
+web/.vite/
+web/.env
+
+# ===============================
+# IDEs / OS
+# ===============================
+.vscode/
+.idea/
+.DS_Store
