@@ -18,7 +18,7 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
-    public String generateToken(String username) {
+    public String generateAccessToken(String username) {
 
         return Jwts.builder()
                 .setSubject(username)

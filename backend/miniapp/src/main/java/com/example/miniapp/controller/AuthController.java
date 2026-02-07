@@ -4,7 +4,9 @@ import com.example.miniapp.dto.LoginRequest;
 import com.example.miniapp.dto.LoginResponse;
 import jakarta.validation.Valid;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,15 +39,50 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(
             @Valid @RequestBody LoginRequest request) {
 
-        String token = authService.login(request);
+        LoginResponse response = authService.login(request);
 
-        return ResponseEntity.ok(new LoginResponse(token));
+        ResponseCookie refreshCookie = ResponseCookie.from(
+                        "refreshToken", response.refreshToken())
+                .httpOnly(true)
+                .secure(true)        // set false only in local dev if needed
+                .path("/api/auth/refresh")
+                .maxAge(7 * 24 * 60 * 60) // 7 days
+                .sameSite("Strict")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                // return ONLY access token to client
+                .body(new LoginResponse(response.accessToken(), null));
+    }
+
+
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refresh(
+            @CookieValue("refreshToken") String refreshToken) {
+
+        String newAccessToken = authService.refresh(refreshToken);
+
+        return ResponseEntity.ok(new LoginResponse(newAccessToken, null));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout() {
-        // JWT is stateless — client deletes token
-        return ResponseEntity.ok("Logged out successfully");
+    public ResponseEntity<?> logout(
+            @CookieValue(value = "refreshToken", required = false) String refreshToken) {
+
+        if (refreshToken != null) {
+            authService.logout(refreshToken);
+        }
+
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .path("/api/auth/refresh")
+                .maxAge(0)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+                .body("Logged out successfully");
     }
 
 }

@@ -1,6 +1,7 @@
 package com.example.miniapp.service;
 
 import com.example.miniapp.dto.LoginRequest;
+import com.example.miniapp.dto.LoginResponse;
 import com.example.miniapp.security.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,14 +15,18 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
 
     private final JwtUtil jwtUtil;
 
     public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+                       PasswordEncoder passwordEncoder,
+                       JwtUtil jwtUtil,
+                       RefreshTokenService refreshTokenService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.refreshTokenService = refreshTokenService;
     }
 
     public void register(RegisterRequest request) {
@@ -44,7 +49,7 @@ public class AuthService {
     }
 
 
-    public String login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
 
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("Invalid username or password"));
@@ -53,6 +58,20 @@ public class AuthService {
             throw new RuntimeException("Invalid username or password");
         }
 
-        return jwtUtil.generateToken(user.getUsername());
+        String accessToken = jwtUtil.generateAccessToken(user.getUsername());
+        String refreshToken = refreshTokenService.create(user);
+
+        return new LoginResponse(accessToken, refreshToken);
+    }
+
+    public String refresh(String refreshToken) {
+
+        User user = refreshTokenService.validate(refreshToken);
+
+        return jwtUtil.generateAccessToken(user.getUsername());
+    }
+
+    public void logout(String refreshToken) {
+        refreshTokenService.revoke(refreshToken);
     }
 }
