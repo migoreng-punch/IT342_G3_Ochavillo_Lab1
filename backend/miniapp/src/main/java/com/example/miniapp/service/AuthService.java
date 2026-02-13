@@ -51,7 +51,7 @@ public class AuthService {
     }
 
 
-    public LoginResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request, String ip, String userAgent) {
 
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("Invalid username or password"));
@@ -61,14 +61,14 @@ public class AuthService {
         }
 
         String accessToken = jwtUtil.generateAccessToken(user.getUsername());
-        String refreshToken = refreshTokenService.create(user);
+        String refreshToken = refreshTokenService.create(user, ip, userAgent);
 
         return new LoginResponse(accessToken, refreshToken);
     }
 
-    public LoginResponse refresh(String refreshToken) {
+    public LoginResponse refresh(String refreshToken, String ip, String userAgent) {
 
-        String newRefreshToken = refreshTokenService.rotate(refreshToken);
+        String newRefreshToken = refreshTokenService.rotate(refreshToken, ip, userAgent);
 
         User user = refreshTokenService.validate(newRefreshToken);
 
@@ -79,5 +79,17 @@ public class AuthService {
 
     public void logout(String refreshToken) {
         refreshTokenService.revoke(refreshToken);
+    }
+
+    public void logoutAll(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        refreshTokenService.revokeAll(user);
+    }
+
+    public String getUsernameFromRefresh(String rawToken) {
+        User user = refreshTokenService.validate(rawToken);
+        return user.getUsername();
     }
 }

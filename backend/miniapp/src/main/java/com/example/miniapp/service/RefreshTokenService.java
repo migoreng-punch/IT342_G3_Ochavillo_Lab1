@@ -3,6 +3,7 @@ package com.example.miniapp.service;
 import com.example.miniapp.entity.RefreshToken;
 import com.example.miniapp.entity.User;
 import com.example.miniapp.repository.RefreshTokenRepository;
+import jakarta.transaction.Transactional;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,7 @@ public class RefreshTokenService {
         this.repository = repository;
     }
 
-    public String create(User user) {
+    public String create(User user, String ip, String userAgent) {
         String rawToken = generateToken();
         String hash = hash(rawToken);
 
@@ -27,6 +28,8 @@ public class RefreshTokenService {
         rt.setUser(user);
         rt.setTokenHash(hash);
         rt.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
+        rt.setIpAddress(ip);
+        rt.setUserAgent(userAgent);
 
         repository.save(rt);
         return rawToken;
@@ -68,7 +71,7 @@ public class RefreshTokenService {
                 );
     }
 
-    public String rotate(String rawToken) {
+    public String rotate(String rawToken, String ip, String userAgent) {
         String hash = hash(rawToken);
 
         RefreshToken existing = repository.findByTokenHashAndRevokedFalse(hash)
@@ -79,6 +82,7 @@ public class RefreshTokenService {
         }
 
         // 🚨 Reuse detection
+        // Can remove
         if (existing.isRevoked()) {
             throw new RuntimeException("Refresh token reuse detected");
         }
@@ -88,7 +92,12 @@ public class RefreshTokenService {
         repository.save(existing);
 
         // 🆕 Issue new token
-        return create(existing.getUser());
+        return create(existing.getUser(), ip, userAgent);
+    }
+
+    @Transactional
+    public void revokeAll(User user) {
+        repository.revokeAllByUser(user);
     }
 
 }

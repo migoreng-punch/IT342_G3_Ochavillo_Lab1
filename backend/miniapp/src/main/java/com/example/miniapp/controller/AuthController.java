@@ -3,6 +3,7 @@ package com.example.miniapp.controller;
 import com.example.miniapp.dto.LoginRequest;
 import com.example.miniapp.dto.LoginResponse;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -37,9 +38,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(
-            @Valid @RequestBody LoginRequest request) {
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest) {
 
-        LoginResponse response = authService.login(request);
+        String ip = httpRequest.getRemoteAddr();
+        String userAgent = httpRequest.getHeader("User-Agent");
+        LoginResponse response = authService.login(request, ip, userAgent);
 
         ResponseCookie refreshCookie = ResponseCookie.from(
                         "refreshToken", response.refreshToken())
@@ -59,9 +63,12 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<LoginResponse> refresh(
-            @CookieValue("refreshToken") String refreshToken) {
+            @CookieValue("refreshToken") String refreshToken,
+            HttpServletRequest httpRequest) {
 
-        LoginResponse response = authService.refresh(refreshToken);
+        String ip = httpRequest.getRemoteAddr();
+        String userAgent = httpRequest.getHeader("User-Agent");
+        LoginResponse response = authService.refresh(refreshToken, ip, userAgent);
 
         ResponseCookie refreshCookie = ResponseCookie.from(
                         "refreshToken", response.refreshToken())
@@ -96,6 +103,24 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
                 .body("Logged out successfully");
+    }
+
+    @PostMapping("/logout-all")
+    public ResponseEntity<?> logoutAll(
+            @CookieValue("refreshToken") String refreshToken) {
+
+        String username = authService.getUsernameFromRefresh(refreshToken);
+        authService.logoutAll(username);
+
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .path("/api/auth")
+                .maxAge(0)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+                .body("Logged out from all devices");
     }
 
 }

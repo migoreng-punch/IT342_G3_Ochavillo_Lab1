@@ -32,4 +32,10 @@ public class RefreshToken {
 
     private boolean revoked = false;
 
+    @Column(name = "ip_address")
+    private String ipAddress;
+
+    @Column(name = "user_agent", length = 500)
+    private String userAgent;
+
 }
