@@ -56,11 +56,39 @@ public class RefreshTokenService {
     public void revoke(String rawToken) {
         String hash = hash(rawToken);
 
+        System.out.println("Raw token: " + rawToken);
+        System.out.println("Hashed token: " + hash);
+
         repository.findByTokenHashAndRevokedFalse(hash)
-                .ifPresent(rt -> {
+                .ifPresentOrElse(rt -> {
+                    System.out.println("Token found. Revoking...");
                     rt.setRevoked(true);
                     repository.save(rt);
-                });
+                    }, () -> System.out.println("Token NOT FOUND in DB")
+                );
+    }
+
+    public String rotate(String rawToken) {
+        String hash = hash(rawToken);
+
+        RefreshToken existing = repository.findByTokenHashAndRevokedFalse(hash)
+                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+
+        if (existing.getExpiresAt().isBefore(Instant.now())) {
+            throw new RuntimeException("Refresh token expired");
+        }
+
+        // 🚨 Reuse detection
+        if (existing.isRevoked()) {
+            throw new RuntimeException("Refresh token reuse detected");
+        }
+
+        // 🔄 Revoke old token
+        existing.setRevoked(true);
+        repository.save(existing);
+
+        // 🆕 Issue new token
+        return create(existing.getUser());
     }
 
 }

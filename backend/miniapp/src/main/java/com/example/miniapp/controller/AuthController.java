@@ -45,7 +45,7 @@ public class AuthController {
                         "refreshToken", response.refreshToken())
                 .httpOnly(true)
                 .secure(true)        // set false only in local dev if needed
-                .path("/api/auth/refresh")
+                .path("/api/auth")
                 .maxAge(7 * 24 * 60 * 60) // 7 days
                 .sameSite("Strict")
                 .build();
@@ -61,14 +61,27 @@ public class AuthController {
     public ResponseEntity<LoginResponse> refresh(
             @CookieValue("refreshToken") String refreshToken) {
 
-        String newAccessToken = authService.refresh(refreshToken);
+        LoginResponse response = authService.refresh(refreshToken);
 
-        return ResponseEntity.ok(new LoginResponse(newAccessToken, null));
+        ResponseCookie refreshCookie = ResponseCookie.from(
+                        "refreshToken", response.refreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .path("/api/auth")
+                .maxAge(7 * 24 * 60 * 60)
+                .sameSite("Strict")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(new LoginResponse(response.accessToken(), null));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(
             @CookieValue(value = "refreshToken", required = false) String refreshToken) {
+
+        System.out.println("Logout received refresh token: " + refreshToken);
 
         if (refreshToken != null) {
             authService.logout(refreshToken);
@@ -76,7 +89,7 @@ public class AuthController {
 
         ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
-                .path("/api/auth/refresh")
+                .path("/api/auth")
                 .maxAge(0)
                 .build();
 

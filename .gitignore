@@ -1,9 +1,9 @@
 # ===============================
 # Spring Boot / Java
 # ===============================
-miniapp/target/
-miniapp/.mvn/
-miniapp/*.log
+**/target/
+**/*.class
+**/.mvn/
 
 # ===============================
 # React / Node

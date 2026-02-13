@@ -41,6 +41,8 @@ public class AuthService {
 
         User user = new User();
         user.setUsername(request.getUsername());
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole("USER");
@@ -64,11 +66,15 @@ public class AuthService {
         return new LoginResponse(accessToken, refreshToken);
     }
 
-    public String refresh(String refreshToken) {
+    public LoginResponse refresh(String refreshToken) {
 
-        User user = refreshTokenService.validate(refreshToken);
+        String newRefreshToken = refreshTokenService.rotate(refreshToken);
 
-        return jwtUtil.generateAccessToken(user.getUsername());
+        User user = refreshTokenService.validate(newRefreshToken);
+
+        String newAccessToken = jwtUtil.generateAccessToken(user.getUsername());
+
+        return new LoginResponse(newAccessToken, newRefreshToken);
     }
 
     public void logout(String refreshToken) {
