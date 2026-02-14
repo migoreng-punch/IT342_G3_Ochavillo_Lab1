@@ -1,66 +1,113 @@
 import { useState } from "react";
-import { TextField, Button, Box, Typography, Paper } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../auth/AuthContext";
-import { useNavigate } from "react-router-dom";
 
-const Login = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const { login } = useAuth();
+export default function Login() {
   const navigate = useNavigate();
+  const { setAccessToken } = useAuth();
 
-  const handleSubmit = async (e) => {
+  const [form, setForm] = useState({
+    username: "",
+    password: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
+
     try {
-      const res = await api.post("/api/auth/login", { username, password });
-      login(res.data.token);
+      const res = await api.post("/api/auth/login", form);
+
+      setAccessToken(res.data.accessToken);
       navigate("/dashboard");
-    } catch {
-      alert("Invalid credentials");
+    } catch (err) {
+      setError("Invalid username or password.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Box
-      display="flex"
-      justifyContent="center"
-      alignItems="center"
-      height="100vh"
-    >
-      <Paper elevation={3} sx={{ p: 4, width: 350 }}>
-        <Typography variant="h5" mb={2} textAlign="center">
-          Login
-        </Typography>
+    <div className="min-h-screen bg-background flex items-center justify-center px-6">
+      <div className="w-full max-w-md bg-white p-10 rounded-2xl shadow-lg border border-gray-100">
 
-        <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            label="Username"
-            fullWidth
-            margin="normal"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <TextField
-            label="Password"
-            type="password"
-            fullWidth
-            margin="normal"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <Button
+        {/* Brand */}
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-primary">
+            SchedEase
+          </h1>
+          <p className="text-muted mt-2">
+            Smart Appointment Scheduling
+          </p>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mb-4 text-sm text-red-500 bg-red-50 p-3 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleLogin} className="space-y-5">
+
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Username
+            </label>
+            <input
+              type="text"
+              name="username"
+              required
+              value={form.username}
+              onChange={handleChange}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:outline-none transition"
+              placeholder="Enter your username"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              required
+              value={form.password}
+              onChange={handleChange}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:outline-none transition"
+              placeholder="Enter your password"
+            />
+          </div>
+
+          <button
             type="submit"
-            variant="contained"
-            fullWidth
-            sx={{ mt: 2 }}
+            disabled={loading}
+            className="w-full bg-[var(--color-primary)] text-white py-3 rounded-lg hover:bg-[var(--color-primaryDark)] transition"
           >
-            Login
-          </Button>
-        </Box>
-      </Paper>
-    </Box>
-  );
-};
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
 
-export default Login;
+        </form>
+
+        {/* Footer */}
+        <div className="mt-6 text-center text-sm text-muted">
+          © {new Date().getFullYear()} SchedEase
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -13,6 +13,19 @@ web/dist/
 web/.vite/
 web/.env
 
+###################################
+# Android
+###################################
+**/.gradle/
+**/local.properties
+**/.idea/
+**/build/
+**/app/build/
+**/*.iml
+**/.cxx/
+**/captures/
+**/.externalNativeBuild/
+
 # ===============================
 # IDEs / OS
 # ===============================
