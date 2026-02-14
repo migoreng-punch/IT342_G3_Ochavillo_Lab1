@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../auth/AuthContext";
+import { Link } from "react-router-dom";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -42,15 +43,10 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
       <div className="w-full max-w-md bg-white p-10 rounded-2xl shadow-lg border border-gray-100">
-
         {/* Brand */}
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-primary">
-            SchedEase
-          </h1>
-          <p className="text-muted mt-2">
-            Smart Appointment Scheduling
-          </p>
+          <h1 className="text-3xl font-bold text-primary">SchedEase</h1>
+          <p className="text-muted mt-2">Smart Appointment Scheduling</p>
         </div>
 
         {/* Error */}
@@ -62,11 +58,8 @@ export default function Login() {
 
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-5">
-
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Username
-            </label>
+            <label className="block text-sm font-medium mb-1">Username</label>
             <input
               type="text"
               name="username"
@@ -79,9 +72,7 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Password
-            </label>
+            <label className="block text-sm font-medium mb-1">Password</label>
             <input
               type="password"
               name="password"
@@ -100,8 +91,17 @@ export default function Login() {
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
-
         </form>
+
+        <div className="mt-6 text-center text-sm text-muted">
+          Don't have an account?{" "}
+          <Link
+            to="/register"
+            className="text-primary font-medium hover:underline"
+          >
+            Register
+          </Link>
+        </div>
 
         {/* Footer */}
         <div className="mt-6 text-center text-sm text-muted">
