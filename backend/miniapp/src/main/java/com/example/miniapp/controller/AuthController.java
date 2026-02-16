@@ -123,4 +123,12 @@ public class AuthController {
                 .body("Logged out from all devices");
     }
 
+    @GetMapping("/verify")
+    public ResponseEntity<?> verify(@RequestParam String token) {
+
+        authService.verify(token);
+
+        return ResponseEntity.ok("Account verified successfully");
+    }
+
 }
