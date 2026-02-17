@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -40,4 +42,9 @@ public class User {
     @Column(nullable = false)
     private boolean enabled = false;
 
+    @Column(name = "last_verification_sent_at")
+    private Instant lastVerificationSentAt;
+
+    @Column(name= "created_at")
+    private Instant createdAt = Instant.now();
 }

@@ -131,4 +131,13 @@ public class AuthController {
         return ResponseEntity.ok("Account verified successfully");
     }
 
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerification(
+            @RequestParam String email) {
+
+        authService.resendVerification(email);
+
+        return ResponseEntity.ok("Verification email sent");
+    }
+
 }

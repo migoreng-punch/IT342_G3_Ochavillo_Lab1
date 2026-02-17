@@ -26,6 +26,12 @@ public class VerificationToken {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
+    @Column(name= "expiry_date", nullable = false)
     private Instant expiryDate;
+
+    @Column(name = "last_sent_at")
+    private Instant lastSentAt;
+
+    @Column(name= "used")
+    private boolean used = false;
 }
