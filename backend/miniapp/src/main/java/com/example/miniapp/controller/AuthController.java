@@ -33,7 +33,7 @@ public class AuthController {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(new RegisterResponse("User registered successfully"));
+                .body(new RegisterResponse("User registered successfully, Please verify your email."));
     }
 
     @PostMapping("/login")

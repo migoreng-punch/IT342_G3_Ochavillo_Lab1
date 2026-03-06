@@ -29,8 +29,8 @@ public class Appointment {
     private User client;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "provider_id")
-    private User provider;
+    @JoinColumn(name = "establishment_id")
+    private Establishment establishment;
 
     @Column(name = "appointment_date", nullable = false)
     private LocalDate appointmentDate;

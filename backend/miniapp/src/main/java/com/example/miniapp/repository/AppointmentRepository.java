@@ -1,6 +1,7 @@
 package com.example.miniapp.repository;
 
 import com.example.miniapp.entity.Appointment;
+import com.example.miniapp.entity.Establishment;
 import com.example.miniapp.entity.User;
 import com.example.miniapp.enums.AppointmentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,10 +20,10 @@ public interface AppointmentRepository
     findByClient(User client);
 
     List<Appointment>
-    findByProvider(User provider);
+    findByEstablishment(Establishment establishment);
 
-    List<Appointment> findByProviderAndAppointmentDateAndStatusIn(
-            User provider,
+    List<Appointment> findByEstablishsmentAndAppointmentDateAndStatusIn(
+            Establishment establishment,
             LocalDate date,
             List<AppointmentStatus> statuses
     );

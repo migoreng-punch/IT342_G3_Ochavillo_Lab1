@@ -1,7 +1,9 @@
 package com.example.miniapp.controller;
 
 import com.example.miniapp.dto.BookAppointmentRequest;
+import com.example.miniapp.entity.Establishment;
 import com.example.miniapp.entity.User;
+import com.example.miniapp.repository.EstablishmentRepository;
 import com.example.miniapp.repository.UserRepository;
 import com.example.miniapp.service.AppointmentService;
 import org.springframework.http.ResponseEntity;
@@ -16,11 +18,13 @@ public class AppointmentController {
 
     private final AppointmentService appointmentService;
     private final UserRepository userRepository;
+    private final EstablishmentRepository establishmentRepository;
 
     public AppointmentController(AppointmentService appointmentService,
-                                 UserRepository userRepository) {
+                                 UserRepository userRepository, EstablishmentRepository establishmentRepository) {
         this.appointmentService = appointmentService;
         this.userRepository = userRepository;
+        this.establishmentRepository = establishmentRepository;
     }
 
     // ✅ Book Appointment (Client)
@@ -32,12 +36,12 @@ public class AppointmentController {
         User client = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        User provider = userRepository.findById(request.providerId())
-                .orElseThrow(() -> new RuntimeException("Provider not found"));
+        Establishment establishment = establishmentRepository.findById(request.establishmentId())
+                .orElseThrow(() -> new RuntimeException("Establishment not found"));
 
         appointmentService.bookAppointment(
                 client,
-                provider,
+                establishment,
                 request.date(),
                 request.startTime()
         );
@@ -59,7 +63,7 @@ public class AppointmentController {
         return ResponseEntity.ok("Appointment confirmed.");
     }
 
-    // ❌ Cancel Appointment (Client or Provider)
+    // ✅ Cancel Appointment (Client or Provider)
     @PutMapping("/{id}/cancel")
     public ResponseEntity<?> cancelAppointment(
             @PathVariable UUID id,
@@ -94,8 +98,16 @@ public class AppointmentController {
         User provider = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        if (!provider.getRole().equals("PROVIDER")) {
+            throw new RuntimeException("Only providers can access this endpoint.");
+        }
+
+        Establishment establishment = establishmentRepository
+                .findByOwner(provider)
+                .orElseThrow(() -> new RuntimeException("Establishment not found"));
+
         return ResponseEntity.ok(
-                appointmentService.getAppointmentsForProvider(provider)
+                appointmentService.getAppointmentsForEstablishment(establishment)
         );
     }
 }

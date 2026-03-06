@@ -1,11 +1,12 @@
 package com.example.miniapp.service;
 
 import com.example.miniapp.entity.Appointment;
-import com.example.miniapp.entity.ProviderWeeklyAvailability;
+import com.example.miniapp.entity.Establishment;
+import com.example.miniapp.entity.WeeklyAvailability;
 import com.example.miniapp.entity.User;
 import com.example.miniapp.enums.AppointmentStatus;
 import com.example.miniapp.repository.AppointmentRepository;
-import com.example.miniapp.repository.ProviderWeeklyAvailabilityRepository;
+import com.example.miniapp.repository.WeeklyAvailabilityRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -22,24 +23,28 @@ import java.util.stream.Collectors;
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
-    private final ProviderWeeklyAvailabilityRepository availabilityRepository;
+    private final WeeklyAvailabilityRepository availabilityRepository;
+    private final AvailabilityService availabilityService;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
-            ProviderWeeklyAvailabilityRepository availabilityRepository) {
+            WeeklyAvailabilityRepository availabilityRepository,
+            AvailabilityService availabilityService) {
+
         this.appointmentRepository = appointmentRepository;
         this.availabilityRepository = availabilityRepository;
+        this.availabilityService = availabilityService;
     }
 
     @Transactional
     public void bookAppointment(User client,
-                                User provider,
+                                Establishment establishment,
                                 LocalDate date,
                                 LocalTime start) {
 
-        List<LocalTime> validSlots = generateAvailableSlots(provider, date);
+        List<LocalTime> validSlots = availabilityService.generateAvailableSlots(establishment, date);
 
-        int duration = provider.getSlotDurationMinutes();
+        int duration = establishment.getSlotDurationMinutes();
         LocalTime end = start.plusMinutes(duration);
 
         if (!validSlots.contains(start)) {
@@ -59,7 +64,7 @@ public class AppointmentService {
 
         Appointment appointment = new Appointment();
         appointment.setClient(client);
-        appointment.setProvider(provider);
+        appointment.setEstablishment(establishment);
         appointment.setAppointmentDate(date);
         appointment.setStartTime(start);
         appointment.setEndTime(end);
@@ -68,15 +73,15 @@ public class AppointmentService {
         appointmentRepository.save(appointment);
     }
 
-    private void validateWeeklyAvailability(User provider,
+    private void validateWeeklyAvailability(Establishment establishment,
                                             LocalDate date,
                                             LocalTime start,
                                             LocalTime end) {
 
         DayOfWeek day = date.getDayOfWeek();
 
-        List<ProviderWeeklyAvailability> schedules =
-                availabilityRepository.findByProviderAndDayOfWeek(provider, day);
+        List<WeeklyAvailability> schedules =
+                availabilityRepository.findByEstablishmentAndDayOfWeek(establishment, day);
 
         boolean valid = schedules.stream().anyMatch(schedule ->
                 !start.isBefore(schedule.getStartTime()) &&
@@ -89,103 +94,16 @@ public class AppointmentService {
     }
 
     @Transactional
-    public void createWeeklyAvailability(User provider,
-                                         DayOfWeek day,
-                                         LocalTime start,
-                                         LocalTime end) {
+    public void confirmAppointment(UUID appointmentId, User provider) {
 
         if (!provider.getRole().equals("PROVIDER")) {
-            throw new RuntimeException("Only providers can set availability.");
+            throw new RuntimeException("Only providers can confirm appointments.");
         }
-
-        if (!start.isBefore(end)) {
-            throw new RuntimeException("Start time must be before end time.");
-        }
-
-        validateNoOverlap(provider, day, start, end);
-
-        ProviderWeeklyAvailability availability = new ProviderWeeklyAvailability();
-        availability.setProvider(provider);
-        availability.setDayOfWeek(day);
-        availability.setStartTime(start);
-        availability.setEndTime(end);
-
-        availabilityRepository.save(availability);
-    }
-
-    public List<LocalTime> generateAvailableSlots(User provider, LocalDate date) {
-
-        if (provider.getSlotDurationMinutes() == null) {
-            throw new RuntimeException("Provider slot duration not configured.");
-        }
-
-        DayOfWeek day = date.getDayOfWeek();
-
-        List<ProviderWeeklyAvailability> schedules =
-                availabilityRepository.findByProviderAndDayOfWeek(provider, day);
-
-        if (schedules.isEmpty()) {
-            return List.of();
-        }
-
-        List<Appointment> existingAppointments =
-                appointmentRepository
-                        .findByProviderAndAppointmentDateAndStatusIn(
-                                provider,
-                                date,
-                                List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
-                        );
-
-        Set<LocalTime> booked =
-                existingAppointments.stream()
-                        .map(Appointment::getStartTime)
-                        .collect(Collectors.toSet());
-
-        List<LocalTime> availableSlots = new ArrayList<>();
-        int duration = provider.getSlotDurationMinutes();
-
-        for (ProviderWeeklyAvailability schedule : schedules) {
-
-            LocalTime current = schedule.getStartTime();
-
-            while (!current.plusMinutes(duration).isAfter(schedule.getEndTime())) {
-
-                if (!booked.contains(current)) {
-                    availableSlots.add(current);
-                }
-
-                current = current.plusMinutes(duration);
-            }
-        }
-
-        return availableSlots;
-    }
-
-    private void validateNoOverlap(User provider,
-                                   DayOfWeek day,
-                                   LocalTime start,
-                                   LocalTime end) {
-
-        List<ProviderWeeklyAvailability> existing =
-                availabilityRepository.findByProviderAndDayOfWeek(provider, day);
-
-        boolean overlaps = existing.stream().anyMatch(e ->
-                start.isBefore(e.getEndTime()) &&
-                        end.isAfter(e.getStartTime())
-        );
-
-        if (overlaps) {
-            throw new RuntimeException("Availability overlaps existing schedule.");
-        }
-    }
-
-    @Transactional
-    public void confirmAppointment(UUID appointmentId, User provider) {
 
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Appointment not found."));
 
-        if (!appointment.getProvider().getId().equals(provider.getId())) {
+        if (!appointment.getEstablishment().getOwner().getId().equals(provider.getId())) {
             throw new RuntimeException("Unauthorized to confirm this appointment.");
         }
 
@@ -206,7 +124,10 @@ public class AppointmentService {
                 appointment.getClient().getId().equals(requester.getId());
 
         boolean isProvider =
-                appointment.getProvider().getId().equals(requester.getId());
+                appointment.getEstablishment()
+                        .getOwner()
+                        .getId()
+                        .equals(requester.getId());
 
         if (!isClient && !isProvider) {
             throw new RuntimeException("Unauthorized to cancel this appointment.");
@@ -223,8 +144,8 @@ public class AppointmentService {
         return appointmentRepository.findByClient(client);
     }
 
-    public List<Appointment> getAppointmentsForProvider(User provider) {
-        return appointmentRepository.findByProvider(provider);
+    public List<Appointment> getAppointmentsForEstablishment(Establishment establishment) {
+        return appointmentRepository.findByEstablishment(establishment);
     }
 
 }

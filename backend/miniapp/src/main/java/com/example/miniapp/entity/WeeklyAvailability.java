@@ -16,20 +16,20 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "provider_weekly_availability",
+@Table(name = "weekly_availability",
         uniqueConstraints = @UniqueConstraint(
-                columnNames = {"provider_id", "day_of_week", "start_time"}
+                columnNames = {"establishment_id", "day_of_week", "start_time"}
         )
 )
-public class ProviderWeeklyAvailability {
+public class WeeklyAvailability {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "provider_id")
-    private User provider;
+    @JoinColumn(name = "establishment_id")
+    private Establishment establishment;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "day_of_week", nullable = false)

@@ -47,7 +47,4 @@ public class User {
 
     @Column(name= "created_at")
     private Instant createdAt = Instant.now();
-
-    @Column(name= "slot_duration_minutes")
-    private Integer slotDurationMinutes;
 }

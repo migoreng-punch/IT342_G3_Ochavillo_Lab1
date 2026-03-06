@@ -1,8 +1,11 @@
 package com.example.miniapp.controller;
 
+import com.example.miniapp.entity.Establishment;
 import com.example.miniapp.entity.User;
+import com.example.miniapp.repository.EstablishmentRepository;
 import com.example.miniapp.repository.UserRepository;
 import com.example.miniapp.service.AppointmentService;
+import com.example.miniapp.service.AvailabilityService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,13 +16,13 @@ import java.util.UUID;
 @RequestMapping("/api/providers")
 public class ProviderController {
 
-    private final AppointmentService appointmentService;
-    private final UserRepository userRepository;
+    private final AvailabilityService availabilityService;
+    private final EstablishmentRepository establishmentRepository;
 
-    public ProviderController(AppointmentService appointmentService,
-                              UserRepository userRepository) {
-        this.appointmentService = appointmentService;
-        this.userRepository = userRepository;
+    public ProviderController(AvailabilityService availabilityService,
+                              EstablishmentRepository establishmentRepository) {
+        this.availabilityService = availabilityService;
+        this.establishmentRepository = establishmentRepository;
     }
 
     @GetMapping("/{id}/slots")
@@ -27,11 +30,11 @@ public class ProviderController {
             @PathVariable Long id,
             @RequestParam LocalDate date) {
 
-        User provider = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Provider not found"));
+        Establishment establishment = establishmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Establishment not found"));
 
         return ResponseEntity.ok(
-                appointmentService.generateAvailableSlots(provider, date)
+                availabilityService.generateAvailableSlots(establishment, date)
         );
     }
 }
